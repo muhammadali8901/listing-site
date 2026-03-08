@@ -131,6 +131,10 @@
 
     <script src="loader.js" defer></script>
     <script src="script.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script>
+        emailjs.init('YOUR_PUBLIC_KEY'); // Replace with your EmailJS public key
+    </script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
@@ -163,6 +167,15 @@
             
             const btn = e.target.querySelector('button[type="submit"]');
             const logoFile = document.getElementById('logo').files[0];
+            const email = document.getElementById('email').value;
+            const businessName = document.getElementById('businessName').value;
+            const contactPerson = document.getElementById('contactPerson').value;
+            const phone = document.getElementById('phone').value;
+            const whatsapp = document.getElementById('whatsapp').value;
+            const city = document.getElementById('city').value;
+            const address = document.getElementById('address').value;
+            const category = document.getElementById('category').value;
+            const description = document.getElementById('description').value;
             
             if (!logoFile) {
                 alert('❌ Please upload a logo');
@@ -182,24 +195,44 @@
                 await uploadBytes(logoRef, logoFile);
                 const logoURL = await getDownloadURL(logoRef);
 
-                await addDoc(collection(db, "businesses"), {
-                    businessName: document.getElementById('businessName').value,
-                    contactPerson: document.getElementById('contactPerson').value,
-                    email: document.getElementById('email').value,
-                    phone: document.getElementById('phone').value,
-                    whatsapp: document.getElementById('whatsapp').value,
-                    city: document.getElementById('city').value,
-                    address: document.getElementById('address').value,
-                    category: document.getElementById('category').value,
-                    description: document.getElementById('description').value,
-                    logoURL: logoURL,
+                const docRef = await addDoc(collection(db, "businesses"), {
+                    businessName,
+                    contactPerson,
+                    email,
+                    phone,
+                    whatsapp,
+                    city,
+                    address,
+                    category,
+                    description,
+                    logoURL,
                     createdAt: serverTimestamp(),
                     status: 'pending'
                 });
 
-                alert('✅ Business submitted successfully!');
+                // Send confirmation email
+                if (email) {
+                    const listingURL = `https://pakbizbranhces.online/listing.html?id=${docRef.id}`;
+                    
+                    await emailjs.send('YOUR_SERVICE_ID', 'YOUR_TEMPLATE_ID', {
+                        to_email: email,
+                        to_name: contactPerson || 'Business Owner',
+                        business_name: businessName,
+                        category: category,
+                        city: city,
+                        address: address,
+                        phone: phone,
+                        whatsapp: whatsapp || 'N/A',
+                        description: description,
+                        listing_url: listingURL,
+                        logo_url: logoURL
+                    });
+                }
+
+                alert('✅ Business submitted successfully! Check your email for confirmation.');
                 e.target.reset();
             } catch (error) {
+                console.error('Error:', error);
                 alert('❌ Error: ' + error.message);
             }
 
