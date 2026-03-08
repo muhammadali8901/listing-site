@@ -105,6 +105,11 @@
                         <label for="description">Description *</label>
                         <textarea id="description" rows="5" required></textarea>
                     </div>
+                    <div class="form-group">
+                        <label for="logo">Business Logo (Max 200KB) *</label>
+                        <input type="file" id="logo" accept="image/*" required>
+                        <small style="color: #666; display: block; margin-top: 5px;">Upload your business logo (JPG, PNG, max 200KB)</small>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary btn-large" style="width: 100%;">
@@ -118,5 +123,81 @@
 
     <script src="loader.js"></script>
     <script src="script.js"></script>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-app.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-firestore.js";
+        import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.10.0/firebase-storage.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyC1dRJtLFMhBqieIj6JrtZsd4j0jd1xM_Y",
+            authDomain: "branches-app-ff0a2.firebaseapp.com",
+            projectId: "branches-app-ff0a2",
+            storageBucket: "branches-app-ff0a2.firebasestorage.app",
+            messagingSenderId: "817543103901",
+            appId: "1:817543103901:web:0f1de5eacc949505dc9b74"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const storage = getStorage(app);
+
+        document.getElementById('logo').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.size > 200 * 1024) {
+                alert('❌ Logo must be less than 200KB');
+                e.target.value = '';
+            }
+        });
+
+        document.querySelector('.business-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btn = e.target.querySelector('button[type="submit"]');
+            const logoFile = document.getElementById('logo').files[0];
+            
+            if (!logoFile) {
+                alert('❌ Please upload a logo');
+                return;
+            }
+            
+            if (logoFile.size > 200 * 1024) {
+                alert('❌ Logo must be less than 200KB');
+                return;
+            }
+            
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+
+            try {
+                const logoRef = ref(storage, `logos/${Date.now()}_${logoFile.name}`);
+                await uploadBytes(logoRef, logoFile);
+                const logoURL = await getDownloadURL(logoRef);
+
+                await addDoc(collection(db, "businesses"), {
+                    businessName: document.getElementById('businessName').value,
+                    contactPerson: document.getElementById('contactPerson').value,
+                    email: document.getElementById('email').value,
+                    phone: document.getElementById('phone').value,
+                    whatsapp: document.getElementById('whatsapp').value,
+                    city: document.getElementById('city').value,
+                    address: document.getElementById('address').value,
+                    category: document.getElementById('category').value,
+                    description: document.getElementById('description').value,
+                    logoURL: logoURL,
+                    createdAt: serverTimestamp(),
+                    status: 'pending'
+                });
+
+                alert('✅ Business submitted successfully!');
+                e.target.reset();
+            } catch (error) {
+                alert('❌ Error: ' + error.message);
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-check"></i> Submit Business Listing';
+        });
+    </script>
 </body>
 </html>
